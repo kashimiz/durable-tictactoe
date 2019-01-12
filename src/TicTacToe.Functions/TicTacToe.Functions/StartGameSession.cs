@@ -15,7 +15,7 @@ namespace TicTacToe.Functions
         [FunctionName("StartGameSession")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            DurableOrchestrationClient starter,
+            [OrchestrationClient] DurableOrchestrationClient starter,
             ILogger log)
         {
             // get request params
@@ -31,42 +31,40 @@ namespace TicTacToe.Functions
             }
 
             // get playerId
-            int? playerId = null;
-            if (sessionParams != null)
+            if (ValidateRequest(sessionParams))
             {
-                playerId = sessionParams.PlayerId;
-                log.LogInformation($"The player identifier provided is: {playerId}");
-            }
-
-            // query db for function matching params
-            string matchResult = null;
-            if (playerId.HasValue)
-            {
-                matchResult = await DataClient.GetJoinableGameSessionGuid(playerId.Value.ToString());
-            }
-
-            /*
-            if (matchResult == null)
-            {
-                // create session
-                var initialGameState = new GameSessionState(playerId.Value);
-                string instanceId = await starter.StartNewAsync("GameSession", initialGameState);
-
-                log.LogInformation($"Started game session for player {playerId} with ID = '{instanceId}'.");
-
-                // return session info
-                // get from customStatus?
-                // query from DB?
-                matchResult = "someguid"; // TODO: Swap for data store call.. or do loading separately?
+                log.LogInformation($"The player identifier provided is: {sessionParams.PlayerId}");
             }
             else
             {
-                // send 'player join' event to orchestration
-                await starter.RaiseEventAsync(matchResult, Constants.PlayerJoinEventTag, playerId);
+                return new BadRequestResult();
             }
-            */
-            
-            return new OkObjectResult(matchResult);
+
+            // query db to join or create session
+            SessionInfo sessionInfo = await DataClient.CreateOrJoinGameSession(sessionParams);
+
+            var sessionOrchestrator = await starter.GetStatusAsync(sessionInfo.Guid.ToString());
+
+            if (sessionOrchestrator == null)
+            {
+                // create session
+                var initialGameState = new GameSession(sessionInfo.Id, sessionInfo.Guid, sessionParams.PlayerId);
+                string instanceId = await starter.StartNewAsync("GameSession", sessionInfo.Guid.ToString(), initialGameState);
+                
+                log.LogInformation($"Started game session for player {sessionParams.PlayerId} with ID = '{instanceId}'.");
+            }
+            else
+            {
+                // send 'player join' event to session orchestrator
+                await starter.RaiseEventAsync(sessionInfo.Guid.ToString(), Constants.PlayerJoinEventTag, sessionParams.PlayerId);
+            }
+
+            return new OkObjectResult(starter.CreateHttpManagementPayload(sessionInfo.Guid.ToString()));
+        }
+
+        public static bool ValidateRequest(GameSessionRequest req)
+        {
+            return req != null && req.PlayerId != 0;
         }
     }
 
@@ -76,5 +74,11 @@ namespace TicTacToe.Functions
         public int PlayerId { get; set; }
 
         // extra game session parameters here, e.g. difficulty, board size, # players
+    }
+
+    public class SessionInfo
+    {
+        public long Id { get; set; }
+        public Guid Guid { get; set; }
     }
 }

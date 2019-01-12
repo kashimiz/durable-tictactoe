@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TicTacToe.Functions": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=kshimdurablet3test;AccountKey=nfdY9DUiLl6hCHcooJ0Vam+oQKqi80TnP2DDJDudUttdOoIvAA4Mh46Dr5Rw2ucq/FU/VDa70Ez5OVZtX9TPCA==;EndpointSuffix=core.windows.net"
+      }
+    }
+  }
+}
