@@ -13,7 +13,6 @@ namespace TicTacToe.Functions
         public const string SignalRHub = "gameupdates";
 
         public const string ConnStrDatabase = "DbConnectionString";
-        public const string ConnStrEventHub = "EHConnectionString";
         public const string ConnStrSignalR = "SRConnectionString";
     }
 }

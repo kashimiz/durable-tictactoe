@@ -1,0 +1,9 @@
+﻿{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "DbConnectionString": "<Add your Azure MySQL connection string here>",
+    "SRConnectionString": "<Add your SignalR connection string here>"
+  }
+}
